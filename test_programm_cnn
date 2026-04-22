@@ -113,8 +113,11 @@ class CarBrandClassifier(nn.Module):
         self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.dropout3 = nn.Dropout(0.3)
         
+        # Adaptive Pooling: unabhängig von Input-Größe immer 32x4x4 Output
+        self.adaptive_pool = nn.AdaptiveAvgPool2d((4, 4))
+      
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(32 * 10 * 10, 400)          # 32x10x10 nach letztem Pool
+        self.fc1 = nn.Linear(32 * 4 * 4, 400)          # 32x10x10 nach letztem Pool
         self.dropout4 = nn.Dropout(0.1)
         self.fc2 = nn.Linear(400, 400)
         self.dropout5 = nn.Dropout(0.2)
@@ -133,6 +136,8 @@ class CarBrandClassifier(nn.Module):
         x = self.pool3(x)
         x = self.dropout3(x)
         
+        x = self.adaptive_pool(x)  # Macht unabhängig von Input-Größe
+
         x = self.flatten(x)
         x = F.relu(self.fc1(x))
         x = self.dropout4(x)
