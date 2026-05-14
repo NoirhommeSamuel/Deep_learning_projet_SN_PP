@@ -1,2 +1,16 @@
 .venv/*
-
+test_programm_cnn.py*
+output/*
+logs/*
+output/training_curves_run_C.png
+car_brand_classifier_cnn_full_improved.pth
+car_brand_classifier_cnn_improved.pth
+car_brand_classifier_weightedloss_512cnn_dataset_opt.pth
+.gitignore
+car_brand_classifier_weightedloss_512cnn_run_d.pth
+.gitignore
+car_brand_classifier_weightedloss_512cnn_run_f.pth
+car_brand_classifier_weightedloss_512cnn_run_g.pth
+car_brand_classifier_weightedloss_512cnn.pth
+car_brand_classifier.pth
+car_brand_resnet50_finetuned.pth
