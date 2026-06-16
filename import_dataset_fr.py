@@ -1,127 +1,209 @@
+# Importe pandas pour manipuler des tableaux de données, ici des DataFrames.
 import pandas as pd
+
+# Importe os pour parcourir les dossiers et fichiers du système.
 import os
+
+# Importe fuzzywuzzy pour comparer des chaînes de caractères approximativement.
+# process permet de chercher la meilleure correspondance.
+# fuzz contient les méthodes de comparaison.
 from fuzzywuzzy import process, fuzz
+
+# Importe Path pour gérer les chemins de fichiers de manière plus propre.
 from pathlib import Path
 
-# ===== 1. CHARGER LES DEUX JEUX DE DONNÉES =====
 
-# Chemin vers le premier dataset
-dataset1_path = r"C:\Users\pparr\Documents\Henallux\Henallux PP 2025_2026\Semester 2\Systèmes_intelligents\Dataset\Car Brand Classification Dataset\train"
+# ===== 1. CHARGER LES TROIS DATASETS =====
 
-# Chemin vers le deuxième dataset
-dataset2_path = r"C:\Users\pparr\Documents\Henallux\Henallux PP 2025_2026\Semester 2\Systèmes_intelligents\Dataset\training-car\training_set"
+# Chemin vers le premier dataset, ici le dossier train.
+dataset1_path = Path("/srv/groups/group2/data/Data_opt/Dataset_opt/Car Brand Classification Dataset opt/train")
+
+# Chemin vers le deuxième dataset, ici le dossier val.
+dataset2_path = Path("/srv/groups/group2/data/Data_opt/Dataset_opt/Car Brand Classification Dataset opt/val")
+
+# Chemin vers le troisième dataset.
+dataset3_path = Path("/srv/groups/group2/data/Data_opt/Dataset_opt/training-car opt/training_set")
 
 
-def create_dataframe_from_folders(root_path):
-    
-    #Crée un DataFrame à partir d'une structure de dossiers.
+def create_dataframe_from_folders(root_path, source_name='dataset1'):
+    """
+    Crée un DataFrame à partir d'une structure de dossiers.
 
-    #Principe :
-    #- chaque dossier représente une marque de voiture ;
-    #- chaque fichier image dans ce dossier appartient à cette marque.
+    Structure attendue :
+    root_path/
+        BMW/
+            image1.jpg
+            image2.jpg
+        Audi/
+            image3.jpg
 
+    Chaque dossier représente une marque.
+    Chaque image dans ce dossier est associée à cette marque.
+    """
+
+    # Liste qui contiendra les informations de toutes les images.
     data = []
 
-    # Parcourir tous les dossiers présents dans le chemin principal
+    # Vérifie si le chemin existe.
+    # Si le chemin n'existe pas, on arrête le programme avec une erreur claire.
+    if not root_path.exists():
+        raise FileNotFoundError(f"Pfad nicht gefunden: {root_path}")
+
+    # Parcourt tous les éléments dans le dossier principal.
+    # Chaque élément devrait être un dossier de marque.
     for brand_folder in os.listdir(root_path):
-        folder_path = os.path.join(root_path, brand_folder)
 
-        # Vérifier que l'élément est bien un dossier
-        if os.path.isdir(folder_path):
+        # Crée le chemin complet vers le dossier de la marque.
+        folder_path = root_path / brand_folder
 
-            # Parcourir tous les fichiers dans le dossier de la marque
+        # Vérifie que l'élément est bien un dossier.
+        if folder_path.is_dir():
+
+            # Parcourt tous les fichiers dans le dossier de cette marque.
             for image_file in os.listdir(folder_path):
 
-                # Garder uniquement les fichiers images
+                # Vérifie si le fichier est une image avec une extension autorisée.
                 if image_file.lower().endswith(('.jpg', '.jpeg', '.png')):
 
-                    # Ajouter les informations de l'image dans la liste
+                    # Ajoute une ligne au futur DataFrame.
                     data.append({
+                        # Nom de la marque, pris depuis le nom du dossier.
                         'brand': brand_folder,
+
+                        # Nom du fichier image.
                         'image_file': image_file,
-                        'full_path': os.path.join(folder_path, image_file),
-                        'dataset_source': 'dataset1'
+
+                        # Chemin complet vers l'image.
+                        'full_path': str(folder_path / image_file),
+
+                        # Source du dataset, par exemple dataset1, dataset2 ou dataset3.
+                        'dataset_source': source_name
                     })
 
-    # Convertir la liste de dictionnaires en DataFrame pandas
+    # Convertit la liste de dictionnaires en DataFrame pandas.
     return pd.DataFrame(data)
 
 
 def create_dataframe_from_folders_v2(root_path, source_name='dataset'):
-    
-    #Crée un DataFrame à partir d'une structure de dossiers.
+    """
+    Version alternative pour créer un DataFrame depuis une structure de dossiers.
 
-    #Cette version permet de choisir le nom de la source du dataset.
-    
+    Dans ce code, cette fonction fait pratiquement la même chose que
+    create_dataframe_from_folders.
+    """
 
+    # Liste qui contiendra toutes les lignes du DataFrame.
     data = []
 
-    # Parcourir tous les dossiers présents dans le chemin principal
+    # Vérifie si le chemin existe.
+    if not root_path.exists():
+        raise FileNotFoundError(f"Pfad nicht gefunden: {root_path}")
+
+    # Parcourt les dossiers de marques.
     for brand_folder in os.listdir(root_path):
-        folder_path = os.path.join(root_path, brand_folder)
 
-        # Vérifier que l'élément est bien un dossier
-        if os.path.isdir(folder_path):
+        # Chemin complet vers le dossier de marque.
+        folder_path = root_path / brand_folder
 
-            # Parcourir tous les fichiers dans le dossier de la marque
+        # Vérifie que c'est un dossier.
+        if folder_path.is_dir():
+
+            # Parcourt les fichiers images du dossier.
             for image_file in os.listdir(folder_path):
 
-                # Garder uniquement les fichiers images
+                # Ne garde que les images jpg, jpeg ou png.
                 if image_file.lower().endswith(('.jpg', '.jpeg', '.png')):
 
-                    # Ajouter les informations de l'image dans la liste
+                    # Ajoute les informations de l'image.
                     data.append({
                         'brand': brand_folder,
                         'image_file': image_file,
-                        'full_path': os.path.join(folder_path, image_file),
+                        'full_path': str(folder_path / image_file),
                         'dataset_source': source_name
                     })
 
-    # Convertir la liste de dictionnaires en DataFrame pandas
+    # Retourne le DataFrame final.
     return pd.DataFrame(data)
 
 
-# Charger le premier dataset
-print("Chargement du Dataset 1...")
-df1 = create_dataframe_from_folders(dataset1_path)
-print(f"Dataset 1 : {len(df1)} images")
-print(f"Marques : {df1['brand'].unique()}\n")
+# Affiche un message indiquant que les chemins vont être vérifiés.
+print("Prüfe Pfade...")
 
-# Charger le deuxième dataset
-print("Chargement du Dataset 2...")
+# Vérifie pour chaque dataset si le chemin existe et si c'est bien un dossier.
+for p in [dataset1_path, dataset2_path, dataset3_path]:
+    print(p, "->", p.exists(), p.is_dir())
+
+# Ligne vide pour rendre l'affichage plus lisible.
+print()
+
+
+# Charge le premier dataset.
+print("Lade Dataset 1...")
+df1 = create_dataframe_from_folders(dataset1_path, source_name='dataset1')
+
+# Affiche le nombre d'images trouvées dans le dataset 1.
+print(f"Dataset 1: {len(df1)} Bilder")
+
+# Affiche les marques différentes trouvées dans le dataset 1.
+print(f"Marken: {df1['brand'].unique()}\n")
+
+
+# Charge le deuxième dataset.
+print("Lade Dataset 2...")
 df2 = create_dataframe_from_folders_v2(dataset2_path, source_name='dataset2')
-print(f"Dataset 2 : {len(df2)} images")
-print(f"Marques : {df2['brand'].unique()}")
+
+# Affiche le nombre d'images trouvées.
+print(f"Dataset 2: {len(df2)} Bilder")
+
+# Affiche les marques du dataset 2.
+print(f"Marken: {df2['brand'].unique()}\n")
 
 
-# ===== 2. FUSIONNER LES DEUX DATASETS =====
+# Charge le troisième dataset.
+print("Lade Dataset 3...")
+df3 = create_dataframe_from_folders_v2(dataset3_path, source_name='dataset3')
 
-# Combiner les deux DataFrames en un seul
-df_combined = pd.concat([df1, df2], ignore_index=True)
+# Affiche le nombre d'images trouvées.
+print(f"Dataset 3: {len(df3)} Bilder")
 
-print(f"Datasets combinés : {len(df_combined)} images")
-print(f"Toutes les marques AVANT nettoyage :\n{df_combined['brand'].value_counts()}\n")
+# Affiche les marques du dataset 3.
+print(f"Marken: {df3['brand'].unique()}")
+
+
+# ===== 2. FUSIONNER LES DATASETS =====
+
+# Combine les trois DataFrames en un seul.
+# ignore_index=True recrée un index propre de 0 à n-1.
+df_combined = pd.concat([df1, df2, df3], ignore_index=True)
+
+# Affiche le nombre total d'images après fusion.
+print(f"Kombinierte Datensätze: {len(df_combined)} Bilder")
+
+# Affiche le nombre d'images par marque avant nettoyage.
+print(f"Alle Marken VOR Bereinigung:\n{df_combined['brand'].value_counts()}\n")
 
 
 # ===== 3. NORMALISER LES NOMS DES MARQUES =====
 
 def normalize_brand(name):
-    
-    #Uniformise les noms des marques.
+    """
+    Uniformise les noms des marques.
 
-    #Exemple :
-    #- 'Mercedes Benz' devient 'mercedes'
-    #- 'VW' devient 'volkswagen'
-    
+    Exemple :
+    'Mercedes-Benz', 'mercedes benz' et 'benz'
+    deviennent tous 'mercedes'.
+    """
 
-    # Si le nom est vide ou manquant, on le retourne tel quel
+    # Si le nom est vide ou manquant, on le retourne tel quel.
     if pd.isna(name):
         return name
 
-    # Convertir le nom en minuscules et supprimer les espaces inutiles
+    # Convertit le nom en texte, le met en minuscules
+    # et enlève les espaces au début et à la fin.
     name = str(name).lower().strip()
 
-    # Dictionnaire des variantes fréquentes à remplacer
+    # Dictionnaire des variantes connues.
+    # La clé est une variante possible, la valeur est le nom standard.
     replacements = {
         "mercedes benz": "mercedes",
         "mercedes-benz": "mercedes",
@@ -141,119 +223,131 @@ def normalize_brand(name):
         "kia": "kia",
     }
 
-    # Vérifier si une variante connue est présente dans le nom
+    # Parcourt toutes les variantes connues.
     for alt, standard in replacements.items():
+
+        # Si la variante apparaît dans le nom,
+        # on retourne le nom standardisé.
         if alt in name:
             return standard
 
-    # Si aucune variante n'est trouvée, retourner le nom nettoyé
+    # Si aucune variante n'est trouvée,
+    # on retourne le nom nettoyé.
     return name
 
 
-# Appliquer la normalisation à toutes les marques
+# Applique la fonction normalize_brand à chaque marque.
+# Le résultat est stocké dans une nouvelle colonne.
 df_combined['brand_normalized'] = df_combined['brand'].apply(normalize_brand)
 
-print("Noms des marques AVANT et APRÈS normalisation :")
+# Affiche les noms avant et après normalisation.
+print("Markennamen VOR und NACH Normalisierung:")
 print(df_combined[['brand', 'brand_normalized']].drop_duplicates().sort_values('brand'))
 
 
-# ===== 4. UTILISER LE FUZZY MATCHING POUR UNE MEILLEURE UNIFORMISATION =====
+# ===== 4. FUZZY MATCHING POUR UNIFIER ENCORE PLUS LES NOMS =====
 
-# Récupérer la liste des marques uniques après normalisation
+# Récupère la liste des marques normalisées uniques.
 unique_brands = df_combined['brand_normalized'].dropna().unique().tolist()
 
 
 def fuzzy_match_brands(brand, choices=unique_brands, threshold=85):
-    
-    #Compare les noms de marques de manière approximative.
+    """
+    Compare un nom de marque avec les autres noms existants.
 
-    #Cela permet de corriger certains noms proches ou contenant des fautes.
-    #Exemple :
-    #- 'mercedez' peut être associé à 'mercedes'
-    
+    Si un nom ressemble fortement à un autre nom,
+    il est remplacé par la meilleure correspondance.
 
-    # Si la marque est vide ou manquante, on la retourne telle quelle
+    threshold=85 signifie qu'il faut au moins 85 % de similarité.
+    """
+
+    # Si la marque est vide, on la retourne telle quelle.
     if pd.isna(brand):
         return brand
 
-    # Trouver la marque la plus proche dans la liste des marques existantes
-    match, score = process.extractOne(
-        brand,
-        choices,
-        scorer=fuzz.token_set_ratio
-    )
+    # Cherche la meilleure correspondance entre brand et choices.
+    # fuzz.token_set_ratio est une méthode qui compare les mots.
+    match, score = process.extractOne(brand, choices, scorer=fuzz.token_set_ratio)
 
-    # Si le score de similarité est assez élevé, utiliser la marque trouvée
-    if score >= threshold:
-        return match
-
-    # Sinon, garder le nom original
-    return brand
+    # Si le score est assez élevé, on utilise la correspondance trouvée.
+    # Sinon, on garde le nom original.
+    return match if score >= threshold else brand
 
 
-# Appliquer le fuzzy matching aux marques normalisées
+# Applique le fuzzy matching à toutes les marques normalisées.
 df_combined['brand_matched'] = df_combined['brand_normalized'].apply(fuzzy_match_brands)
 
-print("Après fuzzy matching :")
+# Affiche le nombre d'images par marque après fuzzy matching.
+print("Nach Fuzzy Matching:")
 print(df_combined['brand_matched'].value_counts())
 
 
 # ===== 5. DÉTECTER ET ÉVENTUELLEMENT SUPPRIMER LES DOUBLONS =====
 
-print(f"AVANT : {len(df_combined)} lignes")
+# Affiche le nombre de lignes avant suppression des doublons.
+print(f"VORHER: {len(df_combined)} Zeilen")
 
-# Compter les lignes complètement identiques
+# Calcule le nombre de lignes exactement identiques.
 exact_dupes = df_combined.duplicated().sum()
-print(f"Doublons exacts : {exact_dupes}")
+print(f"Exakte Duplikate: {exact_dupes}")
 
-# Compter les doublons ayant la même marque et le même nom de fichier
+# Calcule les doublons basés sur la marque et le nom du fichier.
+# Cela détecte potentiellement la même image présente dans plusieurs dossiers.
 dupes_by_file = df_combined.duplicated(
     subset=['brand_matched', 'image_file'],
     keep='first'
 ).sum()
 
-print(f"Doublons avec même fichier dans différents dossiers : {dupes_by_file}")
+print(f"Duplikate (same file in different folders): {dupes_by_file}")
 
-# Supprimer les doublons exacts si nécessaire
+# Ces deux lignes sont commentées.
+# Donc les doublons sont seulement détectés, mais pas supprimés.
+
+# Supprimerait les lignes entièrement identiques.
 # df_combined = df_combined.drop_duplicates()
 
-# Supprimer les doublons basés sur la marque et le nom du fichier si nécessaire
-# df_combined = df_combined.drop_duplicates(
-#     subset=['brand_matched', 'image_file'],
-#     keep='first'
-# )
+# Supprimerait les doublons ayant la même marque et le même nom de fichier.
+# df_combined = df_combined.drop_duplicates(subset=['brand_matched', 'image_file'], keep='first')
 
-print(f"APRÈS : {len(df_combined)} lignes")
-print(f"\nSTATISTIQUE FINALE PAR MARQUE :")
+# Comme la suppression est commentée, le nombre de lignes reste identique.
+print(f"NACHHER: {len(df_combined)} Zeilen")
+
+# Affiche la statistique finale par marque.
+print(f"\nFINALE STATISTIK PRO MARKE:")
 print(df_combined['brand_matched'].value_counts().sort_values(ascending=False))
 
 
-# ===== 6. PRÉPARER, SAUVEGARDER ET AFFICHER LES RÉSULTATS =====
+# ===== 6. SAUVEGARDER ET AFFICHER LE RÉSULTAT FINAL =====
 
-# Créer un DataFrame final avec uniquement les colonnes utiles
-df_final = df_combined[
-    ['brand_matched', 'image_file', 'full_path', 'dataset_source']
-].copy()
+# Prépare un DataFrame final avec uniquement les colonnes utiles.
+df_final = df_combined[['brand_matched', 'image_file', 'full_path', 'dataset_source']].copy()
 
-# Renommer les colonnes pour obtenir des noms plus simples
+# Renomme les colonnes pour les adapter au code d'entraînement CNN.
 df_final.columns = ['brand', 'image_file', 'path', 'source']
 
-# Chemin de sortie du fichier CSV final
-output_path = r"C:\Users\pparr\Documents\Henallux\Henallux PP 2025_2026\Semester 2\Systèmes_intelligents\Deep_learning_projet_SN_PP\combined_dataset.csv"
+# Définit le chemin de sortie du fichier CSV final.
+output_path = Path("/srv/groups/group2/projects/combined_dataset_opt.csv")
 
-# Sauvegarder le DataFrame final dans un fichier CSV
+# Sauvegarde le DataFrame final en CSV.
+# index=False évite d'ajouter une colonne d'index inutile.
 df_final.to_csv(output_path, index=False)
 
-print(f"✓ Sauvegardé : {output_path}\n")
+# Confirme que le fichier a été sauvegardé.
+print(f"✓ Gespeichert: {output_path}\n")
 
-# Afficher un résumé du dataset final
-print("APERÇU FINAL DU DATASET :")
-print(f"Nombre total d'images : {len(df_final)}")
-print(f"Nombre de marques : {df_final['brand'].nunique()}")
+# Affiche un résumé du dataset final.
+print("FINALE DATASET ÜBERSICHT:")
 
-print(f"\nImages par marque :")
+# Nombre total d'images.
+print(f"Gesamte Bilder: {len(df_final)}")
+
+# Nombre de marques différentes.
+print(f"Anzahl Marken: {df_final['brand'].nunique()}")
+
+# Nombre d'images par marque.
+print(f"\nBilder pro Marke:")
 print(df_final['brand'].value_counts())
 
-# Afficher les 10 premières lignes du DataFrame final
-print(f"\n10 premières lignes :")
+# Affiche les 10 premières lignes du DataFrame final.
+print(f"\nErste 10 Zeilen:")
 print(df_final.head(10))
